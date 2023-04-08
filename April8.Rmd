@@ -1,0 +1,15 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(curatedOvarianData)
+data(package="curatedOvarianData")
+```
+
+```{r}
+data(TCGA_eset) 
+TCGA_eset
+```
+
