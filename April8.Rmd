@@ -10,6 +10,31 @@ data(package="curatedOvarianData")
 
 ```{r}
 data(TCGA_eset) 
+# Get gene names
+gene_names <- featureNames(TCGA_eset)
+head(gene_names, 10)
+```
+
+The dataset consists of gene expression data for 379 ovarian cancer patients, measured using RNA sequencing. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
+```{r}
+
+library(curatedOvarianData)
+library(pheatmap)
+
+# Load TCGA_eset dataset
+data(TCGA_eset)
+
+# Extract gene expression data
+exprs_matrix <- exprs(TCGA_eset)
+
+# Set row names to gene names
+rownames(exprs_matrix) <- featureNames(TCGA_eset)
+
+# Subset to top 100 most variable genes by custom filter
+exprs_matrix <- exprs_matrix[apply(exprs_matrix, 1, function(x) var(x) > 0.5), ][1:100, ]
+
+# Create heatmap
+pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean")
 
 ```
 
