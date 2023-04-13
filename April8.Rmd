@@ -16,13 +16,13 @@ head(gene_names, 10)
 ```
 
 The dataset consists of gene expression data for 379 ovarian cancer patients, measured using RNA sequencing. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
+
+# Heatmap using pheatmap
 ```{r}
 
 library(curatedOvarianData)
 library(pheatmap)
 
-# Load TCGA_eset dataset
-data(TCGA_eset)
 
 # Extract gene expression data
 exprs_matrix <- exprs(TCGA_eset)
@@ -35,6 +35,51 @@ exprs_matrix <- exprs_matrix[apply(exprs_matrix, 1, function(x) var(x) > 0.5), ]
 
 # Create heatmap
 pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean")
+
+```
+# correlation plot using corplot library
+```{r}
+library(curatedOvarianData)
+library(corrplot)
+
+
+# Extract gene expression data
+exprs_matrix <- exprs(TCGA_eset)
+
+# Calculate the correlation matrix
+corr_matrix <- cor(exprs_matrix)
+
+# Create a color palette
+color_palette <- colorRampPalette(c("#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7", "#FFFFFF", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"))(n = 100)
+
+# Create the correlation plot
+corrplot(corr_matrix, type = "upper", order = "hclust", col = color_palette, tl.col = "black")
+
+```
+```{r}
+library(curatedOvarianData)
+library(corrplot)
+
+# Load TCGA_eset dataset
+data(TCGA_eset)
+
+# Extract gene expression data
+exprs_matrix <- exprs(TCGA_eset)
+
+# Calculate the variance of each gene across all samples
+gene_var <- apply(exprs_matrix, 1, var)
+
+# Select genes with variance greater than 0.5
+subset_genes <- exprs_matrix[gene_var > 0.5, ]
+
+# Calculate the correlation matrix for the subset of genes
+corr_matrix <- cor(subset_genes)
+
+# Create a color palette
+color_palette <- colorRampPalette(c("#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7", "#FFFFFF", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"))(n = 100)
+
+# Create the correlation plot
+corrplot(corr_matrix, type = "upper", order = "hclust", col = color_palette, tl.col = "black")
 
 ```
 
