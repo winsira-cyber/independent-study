@@ -34,7 +34,7 @@ rownames(exprs_matrix) <- featureNames(TCGA_eset)
 exprs_matrix <- exprs_matrix[apply(exprs_matrix, 1, function(x) var(x) > 0.5), ][1:100, ]
 
 # Create heatmap
-pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean")
+pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean", show_rownames = FALSE)
 
 ```
 # correlation plot using corplot library
