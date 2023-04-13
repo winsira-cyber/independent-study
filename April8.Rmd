@@ -38,24 +38,7 @@ pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean", sh
 
 ```
 # correlation plot using corplot library
-```{r}
-library(curatedOvarianData)
-library(corrplot)
 
-
-# Extract gene expression data
-exprs_matrix <- exprs(TCGA_eset)
-
-# Calculate the correlation matrix
-corr_matrix <- cor(exprs_matrix)
-
-# Create a color palette
-color_palette <- colorRampPalette(c("#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7", "#FFFFFF", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"))(n = 100)
-
-# Create the correlation plot
-corrplot(corr_matrix, type = "upper", order = "hclust", col = color_palette, tl.col = "black")
-
-```
 ```{r}
 library(curatedOvarianData)
 library(corrplot)
@@ -79,7 +62,43 @@ corr_matrix <- cor(subset_genes)
 color_palette <- colorRampPalette(c("#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7", "#FFFFFF", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"))(n = 100)
 
 # Create the correlation plot
-corrplot(corr_matrix, type = "upper", order = "hclust", col = color_palette, tl.col = "black")
+corrplot(corr_matrix, type = "upper", order = "hclust", col = color_palette, tl.col = "red", tl.pos="n")
+
+```
+Network analysis plots: Network analysis can be used to identify the relationships between different metabolites and their role in metabolic pathways. The "igraph" package in R can be used to generate network analysis plots that show the connections between metabolites.
+```{r}
+library(igraph)
+# Load the TCGA_eset dataset
+data(TCGA_eset)
+
+# Extract the gene expression data
+tcga.exprs <- exprs(TCGA_eset)
+
+# Log2 transformation of the gene expression data
+log2.exprs <- log2(tcga.exprs + 1)
+
+# Calculate the variance for each gene
+gene.variance <- apply(log2.exprs, 1, var)
+
+# Order genes by variance and select the top 50
+top.genes <- head(order(gene.variance, decreasing = TRUE), 50)
+
+# Subset the gene expression data with the top 50 genes
+subset.exprs <- log2.exprs[top.genes, ]
+
+# Generate a correlation matrix of the gene expression data
+cor.matrix <- cor(subset.exprs)
+
+# Create an igraph graph object
+graph <- graph.adjacency(cor.matrix, mode = "undirected", weighted = TRUE)
+
+# Set node color based on gene expression level
+node.color <- ifelse(rowMeans(subset.exprs) > log2(6), "red", "blue")
+
+# Plot the graph with node color based on gene expression level
+plot(graph, vertex.size =8, vertex.color = node.color, edge.width = E(graph)$weight * 2, vertex.label=NA)
+
+
 
 ```
 
