@@ -18,6 +18,7 @@ head(gene_names, 10)
 The dataset consists of gene expression data for 379 ovarian cancer patients, measured using RNA sequencing. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
 
 # Heatmap using pheatmap
+
 ```{r}
 
 library(curatedOvarianData)
@@ -37,6 +38,7 @@ exprs_matrix <- exprs_matrix[apply(exprs_matrix, 1, function(x) var(x) > 0.5), ]
 pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean", show_rownames = FALSE)
 
 ```
+
 # correlation plot using corplot library
 
 ```{r}
@@ -65,7 +67,9 @@ color_palette <- colorRampPalette(c("#67001F", "#B2182B", "#D6604D", "#F4A582", 
 corrplot(corr_matrix, type = "upper", order = "hclust", col = color_palette, tl.col = "red", tl.pos="n")
 
 ```
+
 Network analysis plots: Network analysis can be used to identify the relationships between different metabolites and their role in metabolic pathways. The "igraph" package in R can be used to generate network analysis plots that show the connections between metabolites.
+
 ```{r}
 library(igraph)
 # Load the TCGA_eset dataset
@@ -101,4 +105,3 @@ plot(graph, vertex.size =8, vertex.color = node.color, edge.width = E(graph)$wei
 
 
 ```
-
