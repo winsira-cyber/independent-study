@@ -1,10 +1,15 @@
 ---
 title: "Visualization of Ovarian Cancer DATA using various R packages"
-output: html_notebook
+knit: (function(input_file, encoding) {
+    out_dir<- 'docs';
+    rmarkdown::render(input_file,
+      encoding=encoding,
+      output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+output: html_document
 ---
 
 ```{r}
-library(curatedOvarianData)
+library(curatedOvarianData) 
 data(package="curatedOvarianData")
 ```
 
