@@ -18,9 +18,27 @@ data(TCGA_eset)
 # Get gene names
 gene_names <- featureNames(TCGA_eset)
 head(gene_names, 10)
+
+
+
 ```
 
-The dataset consists of gene expression data for 379 ovarian cancer patients, measured using RNA sequencing. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
+# Extract metadata and clinical information:we can access this information using the pData() and fData() functions from the Biobase package.
+```{r}
+summary(TCGA_eset)
+dim(TCGA_eset)
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+    #install.packages("BiocManager")
+
+#BiocManager::install("Biobase")
+
+library(Biobase)
+sample_metadata <- pData(TCGA_eset)
+feature_metadata <- fData(TCGA_eset)
+
+```
+
+The TCGA_eset dataset contains gene expression data for 13,104 features (genes) across 578 samples. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
 
 # Heatmap using pheatmap
 
@@ -111,5 +129,3 @@ plot(graph, vertex.size =8, vertex.color = node.color, edge.width = E(graph)$wei
 
 ```
 
-this is a test
-sfkajfafk
