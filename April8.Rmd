@@ -23,7 +23,7 @@ head(gene_names, 10)
 
 ```
 
-# Extract metadata and clinical information:we can access this information using the pData() and fData() functions from the Biobase package.
+## Extract metadata and clinical information:we can access this information using the pData() and fData() functions from the Biobase package.
 ```{r}
 summary(TCGA_eset)
 dim(TCGA_eset)
@@ -34,6 +34,7 @@ dim(TCGA_eset)
 
 library(Biobase)
 sample_metadata <- pData(TCGA_eset)
+head(sample_metadata)
 feature_metadata <- fData(TCGA_eset)
 
 ```
@@ -126,6 +127,55 @@ node.color <- ifelse(rowMeans(subset.exprs) > log2(6), "red", "blue")
 plot(graph, vertex.size =8, vertex.color = node.color, edge.width = E(graph)$weight * 2, vertex.label=NA)
 
 
+
+```
+
+
+## volcano plot using ggplot
+Volcano plots are commonly used in omics data analysis, including metabolomics, to visualize the significance and fold-change of features between two groups or conditions. 
+These plots are especially useful for identifying features that are significantly different between groups.
+```{r}
+library(limma)
+# Create a design matrix using your sample group information
+
+design <- model.matrix(~ 0 + sample_metadata$sample_type)
+
+# Fit the linear model
+fit <- lmFit(TCGA_eset, design)
+
+# Apply empirical Bayes statistics
+fit <- eBayes(fit)
+summary(fit)
+
+results <- topTable(fit, number = nrow(TCGA_eset), adjust = "fdr", sort.by = "none")
+head(results)
+```
+
+```{r}
+library(ggplot2)
+# Prepare the data for the volcano plot
+volcano_data <- data.frame(
+  genes = results$gene,
+  log2FoldChange = results$sample_metadata.sample_typetumor - results$sample_metadata.sample_typehealthy,
+  pvalue = results$adj.P.Val
+)
+
+# Create the volcano plot
+ggplot(volcano_data, aes(x = log2FoldChange, y = -log10(pvalue))) +
+  geom_point(aes(color = pvalue < 0.05), alpha = 0.7) +
+  scale_color_manual(values = c("grey", "red")) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  labs(x = "Log2 Fold Change", y = "-log10 adjusted p-value", title = "Differentially Expressed Genes") +
+  theme_classic()
+
+```
+
+## complex heatmap
+This will create a heatmap of the random data in mat, with the column and row names set to their respective indices, a title of "Expression", and a blue-to-red color gradient. 
+
+## circlize 
+The plot is constructed using the circlize package in R, which allows for circular visualization of network data. The color of the edges represents the superpathway of the first metabolite (numerator of the ratio) of the metabolite pair that constructs the metabolite ratios. The grayscale gradient filling the edges indicates the strength of the genetic association with darker color indicating stronger significance.
+```{r}
 
 ```
 
