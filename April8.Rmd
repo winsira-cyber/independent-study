@@ -23,7 +23,8 @@ head(gene_names, 10)
 
 ```
 
-## Extract metadata and clinical information:we can access this information using the pData() and fData() functions from the Biobase package.
+## Extract metadata and clinical information:
+we can access this information using the pData() and fData() functions from the Biobase package.
 ```{r}
 summary(TCGA_eset)
 dim(TCGA_eset)
@@ -34,9 +35,9 @@ dim(TCGA_eset)
 
 library(Biobase)
 sample_metadata <- pData(TCGA_eset)
-head(sample_metadata)
+#head(sample_metadata)
 feature_metadata <- fData(TCGA_eset)
-
+#head(feature_metadata)
 ```
 
 The TCGA_eset dataset contains gene expression data for 13,104 features (genes) across 578 samples. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
