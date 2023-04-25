@@ -42,7 +42,7 @@ feature_metadata <- fData(TCGA_eset)
 
 The TCGA_eset dataset contains gene expression data for 13,104 features (genes) across 578 samples. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
 
-# Heatmap using pheatmap
+## Heatmap 
 
 ```{r}
 
@@ -56,15 +56,69 @@ exprs_matrix <- exprs(TCGA_eset)
 # Set row names to gene names
 rownames(exprs_matrix) <- featureNames(TCGA_eset)
 
-# Subset to top 100 most variable genes by custom filter
-exprs_matrix <- exprs_matrix[apply(exprs_matrix, 1, function(x) var(x) > 0.5), ][1:100, ]
+# Subset to top 20 most variable genes by custom filter
+exprs_matrix <- exprs_matrix[apply(exprs_matrix, 1, function(x) var(x) > 0.5), ][20:40, ]
 
 # Create heatmap
-pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean", show_rownames = FALSE)
+pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean", show_rownames = T, show_colnames=F)
+
+```
+The plot shows a heatmap of the expression levels of the top 20 most variable genes (determined by a custom filter) in a subset of samples from the TCGA ovarian cancer dataset. Each row represents a gene, and each column represents a sample. The color scale represents the level of expression for each gene in each sample, with red indicating high expression and blue indicating low expression. The rows are clustered using euclidean distance and the columns are not clustered 
+
+
+```{r}
+library(ComplexHeatmap)
+
+top_gene_expression <- exprs(TCGA_eset)
+sample_metadata <- pData(TCGA_eset)
+top_gene_expression_t <- t(top_gene_expression)
+combined_data <- data.frame(Sample_Type = sample_metadata$sample_type, top_gene_expression_t)
+#non_na_indices contain the indices of all samples that have a non-missing value
+non_na_indices <- which(!is.na(sample_metadata$sample_type))
+# we create a new data frame with the Sample_Type column, using only the rows corresponding to the non_na_indices.
+sample_annotation_filtered <- data.frame(Sample_Type = sample_metadata$sample_type[non_na_indices])
+rownames(sample_annotation_filtered) <- rownames(sample_metadata)[non_na_indices]
+# filter the columns of the top_gene_expression matrix to include only those that correspond to the non_na_indices
+top_gene_expression_filtered <- top_gene_expression[, non_na_indices]
+
 
 ```
 
-# correlation plot using corplot library
+```{r}
+col_fun <- colorRampPalette(c("blue", "white", "red"))(100)
+
+Heatmap(top_gene_expression_filtered,
+        col = col_fun,
+        name = "Expression",
+        cluster_rows = TRUE,
+        cluster_columns = TRUE,
+        show_column_names = FALSE,
+        show_row_names = FALSE,
+        top_annotation = HeatmapAnnotation(df = sample_annotation_filtered$Sample_Type))
+
+```
+
+
+
+
+## correlation plot 
+
+```{r}
+library(corrplot)
+gene_expression <- exprs(TCGA_eset)
+# Select a subset of genes (e.g., the first 20 genes)
+selected_genes <- gene_expression[1:20, ]
+
+# Select a subset of samples (e.g., the first 100 samples)
+selected_samples <- selected_genes[, 1:100]
+
+correlation_matrix_subset <- cor(t(selected_samples), method = "pearson")
+
+corrplot(correlation_matrix_subset, method = "color", type = "upper", mar = c(0, 0, 1, 1))
+
+
+```
+This plot is showing the correlation between the expression levels of a subset of genes (the first 20 genes) in a subset of samples (the first 100 samples) from the TCGA_eset dataset. The plot is a correlation matrix, where each cell represents the correlation between the expression levels of two genes. The color of each cell indicates the strength of the correlation, with darker colors indicating stronger positive or negative correlations.
 
 ```{r}
 library(corrplot)
@@ -72,17 +126,18 @@ gene_expression <- exprs(TCGA_eset)
 # Select a subset of genes (e.g., the first 100 genes)
 selected_genes <- gene_expression[1:100, ]
 
-# Select a subset of samples (e.g., the first 50 samples)
-selected_samples <- selected_genes[, 1:50]
+# Select a subset of samples (e.g., the first 100 samples)
+selected_samples <- selected_genes[, 1:100]
 
 correlation_matrix_subset <- cor(t(selected_samples), method = "pearson")
 
-corrplot(correlation_matrix_subset, method = "color", type = "upper", mar = c(0, 0, 1, 1), tl.pos = "n")
+corrplot(correlation_matrix_subset, method = "color", type = "upper", mar = c(0, 0, 1, 1),tl.pos="n")
 
 
 ```
 
-Network analysis plots: Network analysis can be used to identify the relationships between different metabolites and their role in metabolic pathways. The "igraph" package in R can be used to generate network analysis plots that show the connections between metabolites.
+
+## Network analysis plots
 
 ```{r}
 library(igraph)
@@ -91,6 +146,8 @@ data(TCGA_eset)
 
 # Extract the gene expression data
 tcga.exprs <- exprs(TCGA_eset)
+# Subset the gene expression data to the first 30 samples
+tcga.exprs <- tcga.exprs[, 1:30]
 
 # Log2 transformation of the gene expression data
 log2.exprs <- log2(tcga.exprs + 1)
@@ -98,8 +155,8 @@ log2.exprs <- log2(tcga.exprs + 1)
 # Calculate the variance for each gene
 gene.variance <- apply(log2.exprs, 1, var)
 
-# Order genes by variance and select the top 50
-top.genes <- head(order(gene.variance, decreasing = TRUE), 50)
+# Order genes by variance and select the top 100
+top.genes <- head(order(gene.variance, decreasing = TRUE), 100)
 
 # Subset the gene expression data with the top 50 genes
 subset.exprs <- log2.exprs[top.genes, ]
@@ -114,12 +171,16 @@ graph <- graph.adjacency(cor.matrix, mode = "undirected", weighted = TRUE)
 node.color <- ifelse(rowMeans(subset.exprs) > log2(6), "red", "blue")
 
 # Plot the graph with node color based on gene expression level
-plot(graph, vertex.size =8, vertex.color = node.color, edge.width = E(graph)$weight * 2, vertex.label=NA)
+plot(graph, vertex.size =8, vertex.color = node.color,vertex.label.cex = 0.7, edge.width = E(graph)$weight*2)
 
 
 
 ```
 
+1.Each node represents a gene.
+The edges connecting the nodes represent the correlation between the expression levels of the connected genes. The edge width is proportional to the correlation strength.
+The node color is determined by the average gene expression level. If the mean expression level is greater than log2(6), the node is colored red, otherwise, it's colored blue.
+This plot can help  visualize and explore the relationships between the most variably expressed genes in the dataset. It can provide insights into the co-expression patterns, which can be useful for understanding gene function, regulation, and interactions. However, it's essential to keep in mind that correlation does not imply causation, and further analyses or experimental validation may be necessary to confirm the relationships between the genes.
 
 ## volcano plot using ggplot
 Volcano plots are commonly used in omics data analysis, including metabolomics, to visualize the significance and fold-change of features between two groups or conditions. 
@@ -159,44 +220,96 @@ ggplot(volcano_data, aes(x = log2FoldChange, y = -log10(pvalue))) +
   theme_classic()
 
 ```
-
-## complex heatmap
-
-```{r}
-library(ComplexHeatmap)
-
-top_gene_expression <- exprs(TCGA_eset)
-sample_metadata <- pData(TCGA_eset)
-top_gene_expression_t <- t(top_gene_expression)
-combined_data <- data.frame(Sample_Type = sample_metadata$sample_type, top_gene_expression_t)
-#non_na_indices contain the indices of all samples that have a non-missing value
-non_na_indices <- which(!is.na(sample_metadata$sample_type))
-# we create a new data frame with the Sample_Type column, using only the rows corresponding to the non_na_indices.
-sample_annotation_filtered <- data.frame(Sample_Type = sample_metadata$sample_type[non_na_indices])
-rownames(sample_annotation_filtered) <- rownames(sample_metadata)[non_na_indices]
-# filter the columns of the top_gene_expression matrix to include only those that correspond to the non_na_indices
-top_gene_expression_filtered <- top_gene_expression[, non_na_indices]
+The volcano plot shows the log2 fold change in expression (x-axis) versus the negative log10 adjusted p-value (y-axis) for each gene. The blue points represent genes that are not significantly differentially expressed (adjusted p-value > 0.05), while the red points represent genes that are significantly differentially expressed (adjusted p-value < 0.05). The dashed horizontal line represents the threshold for statistical significance at an adjusted p-value of 0.05. T
 
 
-```
 
-```{r}
-col_fun <- colorRampPalette(c("blue", "white", "red"))(100)
-
-Heatmap(top_gene_expression_filtered,
-        col = col_fun,
-        name = "Expression",
-        cluster_rows = TRUE,
-        cluster_columns = TRUE,
-        show_column_names = FALSE,
-        show_row_names = FALSE,
-        top_annotation = HeatmapAnnotation(df = sample_annotation_filtered$Sample_Type))
-
-```
 
 ## circlize 
 The plot is constructed using the circlize package in R, which allows for circular visualization of network data. The color of the edges represents the superpathway of the first metabolite (numerator of the ratio) of the metabolite pair that constructs the metabolite ratios. The grayscale gradient filling the edges indicates the strength of the genetic association with darker color indicating stronger significance.
 ```{r}
 
+library(affy)
+library(circlize)
+
+# Load the TCGA_eset dataset
+data(TCGA_eset)
+
+# Extract gene expression data
+gene_expression <- exprs(TCGA_eset)
+
+# Calculate variance for each gene
+gene_variance <- apply(gene_expression, 1, var)
+
+# Get the indices of the top 5 genes with the highest variance
+top_genes <- order(gene_variance, decreasing = TRUE)[10:15]
+
+# Randomly select 10 samples
+
+selected_samples <-15:20
+
+# Subset the gene expression data with the top 5 genes and the selected 10 samples
+subset_exprs <- gene_expression[top_genes, selected_samples]
+# Create the chord diagram
+chordDiagram(subset_exprs)
+
+# Set the font size of the labels
+circos.text(0, seq(0, 1, by = 1/length(top_genes)), top_genes, 
+            facing = 
+              "outside", niceFacing = T, cex = 0.001, adj = c(-0.05, 0.05))
+
+
+
 ```
+the segments represent the genes and the width of each segment is proportional to the sum of the absolute values of the correlations between the gene and all other genes in the dataset. The segments are arranged in a circular layout and connected by ribbons, where the width of each ribbon represents the strength of the correlation between the two genes connected by the ribbon. 
+
+## NetworkD3
+```{r}
+
+# Load necessary libraries
+library(GEOquery)
+library(networkD3)
+
+# Download the GSE113690 dataset
+gse <- getGEO("GSE113690")
+eset <- gse[[1]]
+
+# Extract gene expression data
+exprs <- exprs(eset)
+
+# Calculate variance for each gene
+gene_variance <- apply(exprs, 1, var)
+
+# Get the indices of the top 20 genes with the highest variance
+top_genes <- head(order(gene_variance, decreasing = TRUE), 20)
+
+# Randomly select 20 samples
+set.seed(1)
+selected_samples <- sample(ncol(exprs), 20)
+
+# Subset the gene expression data with the top 20 genes and the selected 20 samples
+subset_exprs <- exprs[top_genes, selected_samples]
+
+# Calculate correlation matrix
+cor_mat <- cor(subset_exprs)
+
+# Convert correlation matrix to edge list
+edge_list <- as.data.frame(as.table(cor_mat))
+colnames(edge_list) <- c("source", "target", "weight")
+# Define node colors and sizes
+# Create the simple network
+
+simpleNetwork(edge_list,linkColour = "blue")
+            
+
+```
+This plot is showing a simple network diagram where nodes represent the top 20 genes with the highest variance and edges represent the correlation between them based on the subset of gene expression data. The thickness of the edges represents the strength of the correlation between the genes.
+
+networkvis
+diagramR
+brickplots
+gplots
+ggforce
+ggvis
+dygraphs
 
