@@ -67,29 +67,18 @@ pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean", sh
 # correlation plot using corplot library
 
 ```{r}
-library(curatedOvarianData)
 library(corrplot)
+gene_expression <- exprs(TCGA_eset)
+# Select a subset of genes (e.g., the first 100 genes)
+selected_genes <- gene_expression[1:100, ]
 
-# Load TCGA_eset dataset
-data(TCGA_eset)
+# Select a subset of samples (e.g., the first 50 samples)
+selected_samples <- selected_genes[, 1:50]
 
-# Extract gene expression data
-exprs_matrix <- exprs(TCGA_eset)
+correlation_matrix_subset <- cor(t(selected_samples), method = "pearson")
 
-# Calculate the variance of each gene across all samples
-gene_var <- apply(exprs_matrix, 1, var)
+corrplot(correlation_matrix_subset, method = "color", type = "upper", mar = c(0, 0, 1, 1), tl.pos = "n")
 
-# Select genes with variance greater than 0.5
-subset_genes <- exprs_matrix[gene_var > 0.5, ]
-
-# Calculate the correlation matrix for the subset of genes
-corr_matrix <- cor(subset_genes)
-
-# Create a color palette
-color_palette <- colorRampPalette(c("#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7", "#FFFFFF", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"))(n = 100)
-
-# Create the correlation plot
-corrplot(corr_matrix, type = "upper", order = "hclust", col = color_palette, tl.col = "red", tl.pos="n")
 
 ```
 
@@ -164,7 +153,7 @@ volcano_data <- data.frame(
 # Create the volcano plot
 ggplot(volcano_data, aes(x = log2FoldChange, y = -log10(pvalue))) +
   geom_point(aes(color = pvalue < 0.05), alpha = 0.7) +
-  scale_color_manual(values = c("grey", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
   labs(x = "Log2 Fold Change", y = "-log10 adjusted p-value", title = "Differentially Expressed Genes") +
   theme_classic()
@@ -172,7 +161,38 @@ ggplot(volcano_data, aes(x = log2FoldChange, y = -log10(pvalue))) +
 ```
 
 ## complex heatmap
-This will create a heatmap of the random data in mat, with the column and row names set to their respective indices, a title of "Expression", and a blue-to-red color gradient. 
+
+```{r}
+library(ComplexHeatmap)
+
+top_gene_expression <- exprs(TCGA_eset)
+sample_metadata <- pData(TCGA_eset)
+top_gene_expression_t <- t(top_gene_expression)
+combined_data <- data.frame(Sample_Type = sample_metadata$sample_type, top_gene_expression_t)
+#non_na_indices contain the indices of all samples that have a non-missing value
+non_na_indices <- which(!is.na(sample_metadata$sample_type))
+# we create a new data frame with the Sample_Type column, using only the rows corresponding to the non_na_indices.
+sample_annotation_filtered <- data.frame(Sample_Type = sample_metadata$sample_type[non_na_indices])
+rownames(sample_annotation_filtered) <- rownames(sample_metadata)[non_na_indices]
+# filter the columns of the top_gene_expression matrix to include only those that correspond to the non_na_indices
+top_gene_expression_filtered <- top_gene_expression[, non_na_indices]
+
+
+```
+
+```{r}
+col_fun <- colorRampPalette(c("blue", "white", "red"))(100)
+
+Heatmap(top_gene_expression_filtered,
+        col = col_fun,
+        name = "Expression",
+        cluster_rows = TRUE,
+        cluster_columns = TRUE,
+        show_column_names = FALSE,
+        show_row_names = FALSE,
+        top_annotation = HeatmapAnnotation(df = sample_annotation_filtered$Sample_Type))
+
+```
 
 ## circlize 
 The plot is constructed using the circlize package in R, which allows for circular visualization of network data. The color of the edges represents the superpathway of the first metabolite (numerator of the ratio) of the metabolite pair that constructs the metabolite ratios. The grayscale gradient filling the edges indicates the strength of the genetic association with darker color indicating stronger significance.
