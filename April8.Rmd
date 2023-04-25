@@ -323,11 +323,246 @@ simpleNetwork(edge_list,linkColour = "blue")
 ```
 This plot is showing a simple network diagram where nodes represent the top 20 genes with the highest variance and edges represent the correlation between them based on the subset of gene expression data. The thickness of the edges represents the strength of the correlation between the genes.
 
-networkvis
-diagramR
-brickplots
-gplots
-ggforce
-ggvis
-dygraphs
+## networkvis
+```{r}
+library(visNetwork)
+library(visNetwork)
+set.seed(1)
+# Create a data frame with nodes and edges
+nodes <- data.frame(id = 1:10, 
+                    label = paste0("Node ", 1:10), 
+                    value = sample(1:10, 10, replace = TRUE),
+                    color = c("red", "blue", "green", "orange", "purple", 
+                              "yellow", "pink", "brown", "grey", "black"))
+edges <- data.frame(from = sample(1:10, 20, replace = TRUE), 
+                    to = sample(1:10, 20, replace = TRUE))
+
+# Create the network visualization
+visNetwork(nodes, edges) %>% 
+  visOptions(highlightNearest = TRUE, 
+             nodesIdSelection = TRUE) %>% 
+  visLayout(randomSeed = 123)
+
+
+```
+
+
+```{r}
+library(nycflights13)
+library(visNetwork)
+library(dplyr)
+
+
+flights_subset <- flights %>%
+  group_by(origin) %>%
+  sample_n(size = 10)
+
+# create nodes and edges data frames
+nodes <- data.frame(id = unique(c(flights_subset$origin, flights_subset$dest)), 
+                    label = unique(c(flights_subset$origin, flights_subset$dest)))
+edges <- data.frame(from = flights_subset$origin, to = flights_subset$dest)
+
+# create the network visualization
+visNetwork(nodes, edges, width = "100%") %>%
+  visNodes(shape = "dot", size = 10) %>%
+  visEdges(arrows = "to", smooth = TRUE) %>%
+  visLayout(randomSeed = 123) 
+
+```
+
+
+## diagramR
+```{r}
+library(DiagrammeR)
+
+grViz("
+digraph {
+  
+  # Set node defaults
+  node [shape = ellipse, style = filled, color = skyblue, fontname = 'Helvetica']
+
+  # Add nodes to the graph
+  A [label = 'Gene A']
+  B [label = 'Gene B']
+  C [label = 'Gene C']
+  D [label = 'Gene D']
+  E [label = 'Gene E']
+  F [label = 'Gene F']
+  G [label = 'Gene G']
+  H [label = 'Gene H']
+  I [label = 'Gene I']
+  J [label = 'Gene J']
+  K [label = 'Gene K']
+  L [label = 'Gene L']
+  M [label = 'Gene M']
+  N [label = 'Gene N']
+  
+  # Set edge defaults
+  edge [color = red]
+
+  # Add edges to the graph
+  A -> B
+  A -> C
+  B -> D
+  C -> D
+  C -> E
+  D -> F
+  E -> F
+  F -> G
+  F -> H
+  G -> I
+  H -> I
+  I -> J
+  I -> K
+  J -> L
+  K -> L
+  L -> M
+  L -> N
+}
+")
+
+
+```
+
+
+dygraphs: This package provides interactive and customizable time series plots that can handle large datasets. 
+```{r}
+#install.packages("dygraphs")
+library(dygraphs)
+data(co2)
+dygraph(co2, main = "Atmospheric CO2 Concentrations") %>%
+  dySeries("V1") %>% #specify which series (column) in the data frame to plot in the dygraph()
+  dyRangeSelector()
+
+
+```
+
+pca
+```{r}
+
+pca <- prcomp(t(exprs(TCGA_eset)), scale. = TRUE)
+
+# Plot the PCA
+ggplot(as.data.frame(pca$x), aes(x = PC1, y = PC2)) +
+  geom_point() +
+  xlab(paste0("PC1: ", round(summary(pca)$importance[2, 1] * 100, 1), "%")) +
+  ylab(paste0("PC2: ", round(summary(pca)$importance[2, 2] * 100, 1), "%")) +
+  theme_bw()
+
+
+```
+
+
+```{r}
+# You will need a differential gene expression analysis result for this
+# Here, I'm using a mock data frame
+logFC <- rnorm(nrow(TCGA_eset), mean = 0, sd = 1)
+A_value <- rowMeans(exprs(TCGA_eset))
+M_value <- logFC
+
+ma_data <- data.frame(Gene = rownames(TCGA_eset),
+                      A_value = A_value,
+                      M_value = M_value)
+
+ggplot(ma_data, aes(x = A_value, y = M_value)) +
+  geom_point(alpha = 0.5) +
+  xlab("A - Mean Expression") +
+  ylab("M - log Fold Change") +
+  theme_bw()
+
+```
+
+```{r}
+#BiocManager::install("mixOmics")
+library(mixOmics)
+
+# Randomly select 100 samples
+set.seed(42)  # Set seed for reproducibility
+selected_samples <- sample(colnames(TCGA_eset), 100)
+
+# Subset the data
+TCGA_eset_subset <- TCGA_eset[, selected_samples]
+
+# PCA plot
+pca_res <- pca(t(exprs(TCGA_eset_subset)), ncomp = 2)
+plotIndiv(pca_res)
+
+```
+```{r}
+library(ggbio)
+library(GenomicFeatures)
+
+data(TCGA_eset)
+sample_metadata <- pData(TCGA_eset)
+feature_metadata <- fData(TCGA_eset)
+
+# Load a sample gene model
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+genes <- genes(txdb)
+
+# Create a GRanges object for a specific genomic region
+genomic_region <- GRanges(seqnames = "chr17", ranges = IRanges(start = 7500000, end = 7800000))
+
+# Plot gene structures using ggbio
+p <- autoplot(txdb, which = genomic_region, gap.geom = "chevron", color = "blue")
+p
+
+```
+```{r}
+library(Biobase)
+library(ggplot2)
+library(dplyr)
+data(TCGA_eset)
+
+# Create a data frame for the gene of interest (e.g., TP53)
+gene <- "TP53"
+gene_data <- data.frame(Expression = exprs(TCGA_eset)[gene, ],
+                        Sample = colnames(TCGA_eset))
+
+# Create sample groups for the example
+set.seed(1)
+sample_groups <- data.frame(Sample = colnames(TCGA_eset),
+                            Group = factor(sample(1:10, ncol(TCGA_eset), replace = TRUE)))
+
+# Merge the gene expression data with the sample groups
+gene_data_grouped <- merge(gene_data, sample_groups, by = "Sample")
+
+
+# Access sample metadata
+sample_metadata <- pData(TCGA_eset)
+
+# Check the available columns in the metadata
+colnames(sample_metadata)
+
+# Access sample metadata
+sample_metadata <- pData(TCGA_eset)
+
+# Check the available columns in the metadata
+colnames(sample_metadata)
+
+# Assuming the column "age" contains the patient age information, create sample groups based on it
+sample_groups <- data.frame(Sample = rownames(sample_metadata),
+                            Group = cut(sample_metadata$age, breaks = c(0, 40, 50, 60, 70, Inf)))
+
+# Clean up the group labels if necessary (e.g., convert to factors)
+sample_groups$Group <- as.factor(sample_groups$Group)
+levels(sample_groups$Group) <- c("Under 40", "40-50", "50-60", "60-70", "Over 70")
+ggplot(gene_data_grouped, aes(x = Group, y = Expression, fill = Group)) +
+  geom_bar(position = "stack", stat = "identity") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size = 12, angle = 0, hjust = 1, color = "black"),
+        axis.text.y = element_text(size = 12, color = "black"),
+        axis.title = element_text(size = 14),
+        legend.text = element_text(size = 12),
+        legend.position = "top",
+        legend.title = element_text(size = 12),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        panel.border = element_rect(color = "black")) +
+  labs(x = "Sample Groups", y = "Expression", size = 10) +
+  guides(fill = guide_legend(title = "Groups", title.position = "top", ncol = 1))
+
+```
 
