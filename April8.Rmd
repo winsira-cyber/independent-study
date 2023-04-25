@@ -22,9 +22,12 @@ head(gene_names, 10)
 
 
 ```
+The TCGA_eset dataset contains gene expression data for 13,104 features (genes) across 578 samples. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
+
 
 ## Extract metadata and clinical information:
 we can access this information using the pData() and fData() functions from the Biobase package.
+
 ```{r}
 summary(TCGA_eset)
 dim(TCGA_eset)
@@ -40,9 +43,9 @@ feature_metadata <- fData(TCGA_eset)
 #head(feature_metadata)
 ```
 
-The TCGA_eset dataset contains gene expression data for 13,104 features (genes) across 578 samples. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
 
-## Heatmap 
+
+## Heatmaps 
 
 ```{r}
 
@@ -97,11 +100,11 @@ Heatmap(top_gene_expression_filtered,
         top_annotation = HeatmapAnnotation(df = sample_annotation_filtered$Sample_Type))
 
 ```
+The heatmap is showing the gene expression levels for the top variable genes in the dataset, with rows representing genes and columns representing individual samples. The color scale represents the relative expression levels of the genes, with red indicating high expression and blue indicating low expression. The heatmap can be used to identify patterns of gene expression that distinguish between tumor and healthy samples.
 
 
 
-
-## correlation plot 
+## Correlation Plot 
 
 ```{r}
 library(corrplot)
@@ -177,43 +180,56 @@ plot(graph, vertex.size =8, vertex.color = node.color,vertex.label.cex = 0.7, ed
 
 ```
 
-1.Each node represents a gene.
-The edges connecting the nodes represent the correlation between the expression levels of the connected genes. The edge width is proportional to the correlation strength.
+
+Each node represents a gene.The edges connecting the nodes represent the correlation between the expression levels of the connected genes. The edge width is proportional to the correlation strength.
 The node color is determined by the average gene expression level. If the mean expression level is greater than log2(6), the node is colored red, otherwise, it's colored blue.
 This plot can help  visualize and explore the relationships between the most variably expressed genes in the dataset. It can provide insights into the co-expression patterns, which can be useful for understanding gene function, regulation, and interactions. However, it's essential to keep in mind that correlation does not imply causation, and further analyses or experimental validation may be necessary to confirm the relationships between the genes.
 
-## volcano plot using ggplot
-Volcano plots are commonly used in omics data analysis, including metabolomics, to visualize the significance and fold-change of features between two groups or conditions. 
-These plots are especially useful for identifying features that are significantly different between groups.
+
+
+
+## Volcano plot
+
 ```{r}
+options(digits = 10)
 library(limma)
 # Create a design matrix using your sample group information
 
 design <- model.matrix(~ 0 + sample_metadata$sample_type)
 
-# Fit the linear model
+# the linear model is fit to the gene expression data using the sample metadata information to define groups
 fit <- lmFit(TCGA_eset, design)
 
-# Apply empirical Bayes statistics
+# empirical Bayes statistics are applied to obtain moderated t-statistics for each gene. 
+#The moderated t-statistics are used to rank the genes based on differential expression between groups
 fit <- eBayes(fit)
-summary(fit)
+#summary(fit)
 
+#topTable function is to extract the top genes based on this ranking
+#adjust parameter is set to "fdr" to adjust the p-values for multiple testing using the false discovery rate method. 
+#significance threshold is defined to identify the differentially expressed genes based on the adjusted p-value
 results <- topTable(fit, number = nrow(TCGA_eset), adjust = "fdr", sort.by = "none")
+
+
+
 head(results)
 ```
 
 ```{r}
+options(digits = 4)
 library(ggplot2)
+
 # Prepare the data for the volcano plot
 volcano_data <- data.frame(
   genes = results$gene,
   log2FoldChange = results$sample_metadata.sample_typetumor - results$sample_metadata.sample_typehealthy,
-  pvalue = results$adj.P.Val
+  pvalue = results$adj.P.Val,
+  adj_pvalue = -log10(results$adj.P.Val) * sign(results$sample_metadata.sample_typetumor - results$sample_metadata.sample_typehealthy)
 )
 
 # Create the volcano plot
-ggplot(volcano_data, aes(x = log2FoldChange, y = -log10(pvalue))) +
-  geom_point(aes(color = pvalue < 0.05), alpha = 0.7) +
+ggplot(volcano_data, aes(x = log2FoldChange, y = adj_pvalue)) +
+  geom_point(aes(color = adj_pvalue > 0.05), alpha = 0.7) +
   scale_color_manual(values = c("blue", "red")) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
   labs(x = "Log2 Fold Change", y = "-log10 adjusted p-value", title = "Differentially Expressed Genes") +
@@ -241,10 +257,10 @@ gene_expression <- exprs(TCGA_eset)
 # Calculate variance for each gene
 gene_variance <- apply(gene_expression, 1, var)
 
-# Get the indices of the top 5 genes with the highest variance
+# Get the indices of the top 6 genes with the highest variance
 top_genes <- order(gene_variance, decreasing = TRUE)[10:15]
 
-# Randomly select 10 samples
+# Randomly select 6 samples
 
 selected_samples <-15:20
 
@@ -261,7 +277,9 @@ circos.text(0, seq(0, 1, by = 1/length(top_genes)), top_genes,
 
 
 ```
-the segments represent the genes and the width of each segment is proportional to the sum of the absolute values of the correlations between the gene and all other genes in the dataset. The segments are arranged in a circular layout and connected by ribbons, where the width of each ribbon represents the strength of the correlation between the two genes connected by the ribbon. 
+
+
+each segment of the circle represents a sample, and the thickness of the segment corresponds to the expression level of the selected genes for that sample. The segments are arranged in a circular layout and connected by ribbons, where the width of each ribbon represents the strength of the correlation between the two genes connected by the ribbon. 
 
 ## NetworkD3
 ```{r}
