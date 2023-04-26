@@ -419,7 +419,7 @@ ggplot(missing_values, aes(x = rank(-N_Missing), y = N_Missing, fill = N_Missing
 ```
 
 
-### The x-axis shows the rank of each variable based on the number of missing values, and the y-axis shows the actual number of missing values. Each tile represents a variable, and its color represents the number of missing values it has. The darker the tile, the more missing values the variable has. The plot is useful for identifying which variables have the most missing values and to what extent they affect the data
+**The x-axis shows the rank of each variable based on the number of missing values, and the y-axis shows the actual number of missing values. Each tile represents a variable, and its color represents the number of missing values it has. The darker the tile, the more missing values the variable has. The plot is useful for identifying which variables have the most missing values and to what extent they affect the data**
 
 
 ## Volcano plot
