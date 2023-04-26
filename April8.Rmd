@@ -137,8 +137,7 @@ corrplot(correlation_matrix_subset, method = "color", type = "upper", mar = c(0,
 ```
 
 
-## Network analysis plots
-
+## Network visualization
 ```{r}
 library(igraph)
 # Load the TCGA_eset dataset
@@ -178,14 +177,11 @@ plot(graph, vertex.size =8, vertex.color = node.color,vertex.label.cex = 0.7, ed
 ```
 
 
-### Each node represents a gene.The edges connecting the nodes represent the correlation between the expression levels of the connected genes. The edge width is proportional to the correlation strength.
-The node color is determined by the average gene expression level. If the mean expression level is greater than log2(6), the node is colored red, otherwise, it's colored blue.
-This plot can help  visualize and explore the relationships between the most variably expressed genes in the dataset. It can provide insights into the co-expression patterns, which can be useful for understanding gene function, regulation, and interactions. However, it's essential to keep in mind that correlation does not imply causation, and further analyses or experimental validation may be necessary to confirm the relationships between the genes.
+### Each node represents a gene.The edges connecting the nodes represent the correlation between the expression levels of the connected genes. The edge width is proportional to the correlation strength.The node color is determined by the average gene expression level. If the mean expression level is greater than log2(6), the node is colored red, otherwise, it's colored blue.
 
 
 
 
-## circlize 
 ```{r}
 
 library(affy)
@@ -224,7 +220,7 @@ circos.text(0, seq(0, 1, by = 1/length(top_genes)), top_genes,
 
 ### each segment of the circle represents a sample, and the thickness of the segment corresponds to the expression level of the selected genes for that sample. The segments are arranged in a circular layout and connected by ribbons, where the width of each ribbon represents the strength of the correlation between the two genes connected by the ribbon. 
 
-## NetworkD3
+
 ```{r}
 
 # Load necessary libraries
@@ -267,7 +263,7 @@ simpleNetwork(edge_list,linkColour = "blue")
 
 ### This plot is showing a simple network diagram where nodes represent the top 20 genes with the highest variance and edges represent the correlation between them based on the subset of gene expression data. The thickness of the edges represents the strength of the correlation between the genes.
 
-## network visualization
+
 ```{r}
 library(visNetwork)
 library(visNetwork)
@@ -315,7 +311,7 @@ visNetwork(nodes, edges, width = "100%") %>%
 ```
 
 
-## diagram
+## Diagram
 ```{r}
 library(DiagrammeR)
 
