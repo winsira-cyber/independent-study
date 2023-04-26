@@ -1,5 +1,5 @@
 ---
-title: "Visualization of Ovarian Cancer DATA using various R packages"
+title: "Visualization using various R packages"
 knit: (function(input_file, encoding) {
     out_dir<- 'docs';
     rmarkdown::render(input_file,
@@ -13,6 +13,7 @@ library(curatedOvarianData)
 data(package="curatedOvarianData")
 ```
 
+The TCGA_eset dataset contains gene expression data for 13,104 features (genes) across 578 samples. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
 ```{r}
 data(TCGA_eset) 
 # Get gene names
@@ -22,19 +23,15 @@ head(gene_names, 10)
 
 
 ```
-The TCGA_eset dataset contains gene expression data for 13,104 features (genes) across 578 samples. The data has been preprocessed and normalized using a standardized pipeline to remove batch effects and other sources of technical variability. The resulting dataset contains 20,501 genes and is stored as an ExpressionSet object in R, which includes not only the gene expression data but also sample annotation information and other metadata.
+
 
 
 ## Extract metadata and clinical information:
 we can access this information using the pData() and fData() functions from the Biobase package.
 
 ```{r}
-summary(TCGA_eset)
-dim(TCGA_eset)
-#if (!requireNamespace("BiocManager", quietly = TRUE))
-    #install.packages("BiocManager")
-
-#BiocManager::install("Biobase")
+#summary(TCGA_eset)
+#dim(TCGA_eset)
 
 library(Biobase)
 sample_metadata <- pData(TCGA_eset)
@@ -66,7 +63,7 @@ exprs_matrix <- exprs_matrix[apply(exprs_matrix, 1, function(x) var(x) > 0.5), ]
 pheatmap(exprs_matrix, scale = "row", clustering_distance_rows = "euclidean", show_rownames = T, show_colnames=F)
 
 ```
-The plot shows a heatmap of the expression levels of the top 20 most variable genes (determined by a custom filter) in a subset of samples from the TCGA ovarian cancer dataset. Each row represents a gene, and each column represents a sample. The color scale represents the level of expression for each gene in each sample, with red indicating high expression and blue indicating low expression. The rows are clustered using euclidean distance and the columns are not clustered 
+### The plot shows a heatmap of the expression levels of the top 20 most variable genes (determined by a custom filter) in a subset of samples from the TCGA ovarian cancer dataset. Each row represents a gene, and each column represents a sample. The color scale represents the level of expression for each gene in each sample, with red indicating high expression and blue indicating low expression. The rows are clustered using euclidean distance and the columns are not clustered 
 
 
 ```{r}
@@ -100,7 +97,7 @@ Heatmap(top_gene_expression_filtered,
         top_annotation = HeatmapAnnotation(df = sample_annotation_filtered$Sample_Type))
 
 ```
-The heatmap is showing the gene expression levels for the top variable genes in the dataset, with rows representing genes and columns representing individual samples. The color scale represents the relative expression levels of the genes, with red indicating high expression and blue indicating low expression. The heatmap can be used to identify patterns of gene expression that distinguish between tumor and healthy samples.
+### The heatmap is showing the gene expression levels for the top variable genes in the dataset, with rows representing genes and columns representing individual samples. The color scale represents the relative expression levels of the genes, with red indicating high expression and blue indicating low expression. The heatmap can be used to identify patterns of gene expression that distinguish between tumor and healthy samples.
 
 
 
@@ -121,7 +118,7 @@ corrplot(correlation_matrix_subset, method = "color", type = "upper", mar = c(0,
 
 
 ```
-This plot is showing the correlation between the expression levels of a subset of genes (the first 20 genes) in a subset of samples (the first 100 samples) from the TCGA_eset dataset. The plot is a correlation matrix, where each cell represents the correlation between the expression levels of two genes. The color of each cell indicates the strength of the correlation, with darker colors indicating stronger positive or negative correlations.
+### This plot is showing the correlation between the expression levels of a subset of genes (the first 20 genes) in a subset of samples (the first 100 samples) from the TCGA_eset dataset. The plot is a correlation matrix, where each cell represents the correlation between the expression levels of two genes. The color of each cell indicates the strength of the correlation, with darker colors indicating stronger positive or negative correlations.
 
 ```{r}
 library(corrplot)
@@ -181,68 +178,14 @@ plot(graph, vertex.size =8, vertex.color = node.color,vertex.label.cex = 0.7, ed
 ```
 
 
-Each node represents a gene.The edges connecting the nodes represent the correlation between the expression levels of the connected genes. The edge width is proportional to the correlation strength.
+### Each node represents a gene.The edges connecting the nodes represent the correlation between the expression levels of the connected genes. The edge width is proportional to the correlation strength.
 The node color is determined by the average gene expression level. If the mean expression level is greater than log2(6), the node is colored red, otherwise, it's colored blue.
 This plot can help  visualize and explore the relationships between the most variably expressed genes in the dataset. It can provide insights into the co-expression patterns, which can be useful for understanding gene function, regulation, and interactions. However, it's essential to keep in mind that correlation does not imply causation, and further analyses or experimental validation may be necessary to confirm the relationships between the genes.
 
 
 
 
-## Volcano plot
-
-```{r}
-options(digits = 10)
-library(limma)
-# Create a design matrix using your sample group information
-
-design <- model.matrix(~ 0 + sample_metadata$sample_type)
-
-# the linear model is fit to the gene expression data using the sample metadata information to define groups
-fit <- lmFit(TCGA_eset, design)
-
-# empirical Bayes statistics are applied to obtain moderated t-statistics for each gene. 
-#The moderated t-statistics are used to rank the genes based on differential expression between groups
-fit <- eBayes(fit)
-#summary(fit)
-
-#topTable function is to extract the top genes based on this ranking
-#adjust parameter is set to "fdr" to adjust the p-values for multiple testing using the false discovery rate method. 
-#significance threshold is defined to identify the differentially expressed genes based on the adjusted p-value
-results <- topTable(fit, number = nrow(TCGA_eset), adjust = "fdr", sort.by = "none")
-
-
-
-head(results)
-```
-
-```{r}
-options(digits = 4)
-library(ggplot2)
-
-# Prepare the data for the volcano plot
-volcano_data <- data.frame(
-  genes = results$gene,
-  log2FoldChange = results$sample_metadata.sample_typetumor - results$sample_metadata.sample_typehealthy,
-  pvalue = results$adj.P.Val,
-  adj_pvalue = -log10(results$adj.P.Val) * sign(results$sample_metadata.sample_typetumor - results$sample_metadata.sample_typehealthy)
-)
-
-# Create the volcano plot
-ggplot(volcano_data, aes(x = log2FoldChange, y = adj_pvalue)) +
-  geom_point(aes(color = adj_pvalue > 0.05), alpha = 0.7) +
-  scale_color_manual(values = c("blue", "red")) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-  labs(x = "Log2 Fold Change", y = "-log10 adjusted p-value", title = "Differentially Expressed Genes") +
-  theme_classic()
-
-```
-The volcano plot shows the log2 fold change in expression (x-axis) versus the negative log10 adjusted p-value (y-axis) for each gene. The blue points represent genes that are not significantly differentially expressed (adjusted p-value > 0.05), while the red points represent genes that are significantly differentially expressed (adjusted p-value < 0.05). The dashed horizontal line represents the threshold for statistical significance at an adjusted p-value of 0.05. T
-
-
-
-
 ## circlize 
-The plot is constructed using the circlize package in R, which allows for circular visualization of network data. The color of the edges represents the superpathway of the first metabolite (numerator of the ratio) of the metabolite pair that constructs the metabolite ratios. The grayscale gradient filling the edges indicates the strength of the genetic association with darker color indicating stronger significance.
 ```{r}
 
 library(affy)
@@ -279,7 +222,7 @@ circos.text(0, seq(0, 1, by = 1/length(top_genes)), top_genes,
 ```
 
 
-each segment of the circle represents a sample, and the thickness of the segment corresponds to the expression level of the selected genes for that sample. The segments are arranged in a circular layout and connected by ribbons, where the width of each ribbon represents the strength of the correlation between the two genes connected by the ribbon. 
+### each segment of the circle represents a sample, and the thickness of the segment corresponds to the expression level of the selected genes for that sample. The segments are arranged in a circular layout and connected by ribbons, where the width of each ribbon represents the strength of the correlation between the two genes connected by the ribbon. 
 
 ## NetworkD3
 ```{r}
@@ -321,9 +264,10 @@ simpleNetwork(edge_list,linkColour = "blue")
             
 
 ```
-This plot is showing a simple network diagram where nodes represent the top 20 genes with the highest variance and edges represent the correlation between them based on the subset of gene expression data. The thickness of the edges represents the strength of the correlation between the genes.
 
-## networkvis
+### This plot is showing a simple network diagram where nodes represent the top 20 genes with the highest variance and edges represent the correlation between them based on the subset of gene expression data. The thickness of the edges represents the strength of the correlation between the genes.
+
+## network visualization
 ```{r}
 library(visNetwork)
 library(visNetwork)
@@ -371,7 +315,7 @@ visNetwork(nodes, edges, width = "100%") %>%
 ```
 
 
-## diagramR
+## diagram
 ```{r}
 library(DiagrammeR)
 
@@ -425,9 +369,115 @@ digraph {
 ```
 
 
-dygraphs: This package provides interactive and customizable time series plots that can handle large datasets. 
+
+## Brick plot
 ```{r}
-#install.packages("dygraphs")
+library(tidyverse)
+
+# Generate mock data
+set.seed(123)
+metabolites <- paste0("Metabolite", 1:20)
+n_endpoints <- sample(1:20, 100, replace = TRUE)
+rank <- rank(-n_endpoints)
+data <- data.frame(Metabolite = metabolites, N_adverse_events = n_endpoints, Rank = rank)
+
+# Create the brick plot
+ggplot(data, aes(x = Rank, y = N_adverse_events, fill = N_adverse_events)) +
+  geom_tile() +
+  geom_text(aes(label = Metabolite), size = 2, color = "white") +
+  scale_fill_gradient(low = "#FDE725", high = "#440154") +
+  coord_flip() +
+  xlab("Rank") +
+  ylab("Number of associated adverse events") +
+  theme_bw()
+
+
+```
+
+### This is a brick plot that shows the ranking of metabolites based on the number of associated incident end points. Each tile represents a metabolite, with the color indicating the number of associated adverse events. The darker the color, the more adverse events a metabolite is associated with. The tiles are ordered by their rank, which is based on the number of adverse events. The x-axis represents the rank, and the y-axis represents the number of associated endpoints. The labels on each tile indicate the name of the corresponding metabolite.
+
+
+```{r}
+library(tidyverse)
+
+# Load the airquality dataset
+data(airquality)
+
+# Create a summary table of the number of missing values for each variable
+missing_values <- airquality %>%
+  summarize_all(~sum(is.na(.))) %>%
+  pivot_longer(everything(), names_to = "Variable", values_to = "N_Missing") %>%
+  arrange(desc(N_Missing))
+
+# Create the brick plot
+ggplot(missing_values, aes(x = rank(-N_Missing), y = N_Missing, fill = N_Missing)) +
+  geom_tile() +
+  geom_text(aes(label = Variable), size = 3, color = "white") +
+  scale_fill_gradient(low = "#FDE725", high = "#440154") +
+  coord_flip() +
+  xlab("Rank") +
+  ylab("Number of missing values") +
+  theme_bw()
+
+```
+
+
+### The x-axis shows the rank of each variable based on the number of missing values, and the y-axis shows the actual number of missing values. Each tile represents a variable, and its color represents the number of missing values it has. The darker the tile, the more missing values the variable has. The plot is useful for identifying which variables have the most missing values and to what extent they affect the data
+
+
+## Volcano plot
+```{r}
+options(digits = 10)
+library(limma)
+# Create a design matrix using your sample group information
+
+design <- model.matrix(~ 0 + sample_metadata$sample_type)
+
+# the linear model is fit to the gene expression data using the sample metadata information to define groups
+fit <- lmFit(TCGA_eset, design)
+
+# empirical Bayes statistics are applied to obtain moderated t-statistics for each gene. 
+#The moderated t-statistics are used to rank the genes based on differential expression between groups
+fit <- eBayes(fit)
+#summary(fit)
+
+#topTable function is to extract the top genes based on this ranking
+#adjust parameter is set to "fdr" to adjust the p-values for multiple testing using the false discovery rate method. 
+#significance threshold is defined to identify the differentially expressed genes based on the adjusted p-value
+results <- topTable(fit, number = nrow(TCGA_eset), adjust = "fdr", sort.by = "none")
+
+
+
+head(results)
+```
+
+```{r}
+options(digits = 4)
+library(ggplot2)
+
+# Prepare the data for the volcano plot
+volcano_data <- data.frame(
+  genes = results$gene,
+  log2FoldChange = results$sample_metadata.sample_typetumor - results$sample_metadata.sample_typehealthy,
+  pvalue = results$adj.P.Val,
+  adj_pvalue = -log10(results$adj.P.Val) * sign(results$sample_metadata.sample_typetumor - results$sample_metadata.sample_typehealthy)
+)
+
+# Create the volcano plot
+ggplot(volcano_data, aes(x = log2FoldChange, y = adj_pvalue)) +
+  geom_point(aes(color = adj_pvalue > 0.05), alpha = 0.7) +
+  scale_color_manual(values = c("blue", "red")) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  labs(x = "Log2 Fold Change", y = "-log10 adjusted p-value", title = "Differentially Expressed Genes") +
+  theme_classic()
+
+```
+
+### The volcano plot shows the log2 fold change in expression (x-axis) versus the negative log10 adjusted p-value (y-axis) for each gene. The blue points represent genes that are not significantly differentially expressed (adjusted p-value > 0.05), while the red points represent genes that are significantly differentially expressed (adjusted p-value < 0.05). The dashed horizontal line represents the threshold for statistical significance at an adjusted p-value of 0.05. T
+
+
+## Time series plot
+```{r}
 library(dygraphs)
 data(co2)
 dygraph(co2, main = "Atmospheric CO2 Concentrations") %>%
@@ -437,26 +487,73 @@ dygraph(co2, main = "Atmospheric CO2 Concentrations") %>%
 
 ```
 
-pca
+
+## PCA
 ```{r}
+library(mixOmics)
 
-pca <- prcomp(t(exprs(TCGA_eset)), scale. = TRUE)
+set.seed(42)  
+selected_samples <- sample(colnames(TCGA_eset), 100)
 
-# Plot the PCA
-ggplot(as.data.frame(pca$x), aes(x = PC1, y = PC2)) +
-  geom_point() +
-  xlab(paste0("PC1: ", round(summary(pca)$importance[2, 1] * 100, 1), "%")) +
-  ylab(paste0("PC2: ", round(summary(pca)$importance[2, 2] * 100, 1), "%")) +
-  theme_bw()
+# Subset the data
+TCGA_eset_subset <- TCGA_eset[, selected_samples]
+
+# PCA plot
+pca_res <- pca(t(exprs(TCGA_eset_subset)), ncomp = 2)
+plotIndiv(pca_res)
+
+```
+
+###  each point represents a sample and the two principal components are plotted on the x and y axes.This plot allows for the visualization of similarities and differences among the samples based on their overall gene expression profiles. Samples that are closer to each other in the plot have more similar gene expression profiles, while samples that are farther apart have more dissimilar profiles.
+
+
+## scatter plot
+```{r}
+library(rbokeh)
+
+# Create sample data
+x <- rnorm(100)
+y <- rnorm(100)
+label <- paste("Point", 1:100 )
+
+# Create plot
+p <- figure() %>%
+  ly_points(x, y, hover = list(label),color="purple")
+
+# Show plot
+p
 
 
 ```
 
 
+### This is a scatter plot of 100 points, with the x-coordinates and y-coordinates randomly generated from a normal distribution. when hovering over a point, a label indicating the point number is displayed
+
+
+
 ```{r}
-# You will need a differential gene expression analysis result for this
-# Here, I'm using a mock data frame
+#install.packages("plotly")
+library(plotly)
+
+# Select two genes randomly
+genes <- sample(rownames(exprs(TCGA_eset)), 2)
+
+# Create a data frame with the gene expression values
+plot_data <- data.frame(x = exprs(TCGA_eset)[genes[1], ],
+                        y = exprs(TCGA_eset)[genes[2], ])
+
+# Create plot
+plot_ly(plot_data, x = ~x, y = ~y, type = "scatter", mode = "markers")
+
+```
+
+### This is a scatter plot of two randomly selected genes from the TCGA_eset dataset. The x-axis represents the expression values of one gene and the y-axis represents the expression values of another gene. Each point on the plot represents a sample from the dataset, where the coordinates of the point are the expression values of the two selected genes for that sample. 
+
+## MA plot
+```{r}
+# M values (log fold change)
 logFC <- rnorm(nrow(TCGA_eset), mean = 0, sd = 1)
+#A values (mean expression) 
 A_value <- rowMeans(exprs(TCGA_eset))
 M_value <- logFC
 
@@ -472,20 +569,26 @@ ggplot(ma_data, aes(x = A_value, y = M_value)) +
 
 ```
 
+
+### Each point represents a gene, and the position of the point indicates the magnitude of the log fold change and the mean expression. The plot is useful for visualizing differentially expressed genes, as genes with high absolute fold changes are plotted at the top or bottom of the plot, and genes with low mean expression are plotted towards the left or right of the plot. The alpha parameter is used to adjust the transparency of the points in the plot.
+ the x-axis showing the average expression level (A value) and the y-axis showing the log fold change (M value) between two conditions or groups
+
+
+
+## 3D scatterplot
 ```{r}
-#BiocManager::install("mixOmics")
-library(mixOmics)
+library(rgl)
+library(plot3D)
+library(plotrix)
+library(Rcmdr)
+# Create sample data
+x <- rnorm(100)
+y <- rnorm(100)
+z <- rnorm(100)
 
-# Randomly select 100 samples
-set.seed(42)  # Set seed for reproducibility
-selected_samples <- sample(colnames(TCGA_eset), 100)
-
-# Subset the data
-TCGA_eset_subset <- TCGA_eset[, selected_samples]
-
-# PCA plot
-pca_res <- pca(t(exprs(TCGA_eset_subset)), ncomp = 2)
-plotIndiv(pca_res)
-
+# Create 3D scatterplot
+scatter3d(x, y, z, main = "3D Scatterplot", xlab = "X", ylab = "Y", zlab = "Z")
 ```
+
+### The scatterplot shows the distribution of 100 randomly generated values for the X, Y, and Z coordinates in 3D space. 
 
