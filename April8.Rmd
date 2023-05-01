@@ -166,7 +166,8 @@ cor.matrix <- cor(subset.exprs)
 
 # Create an igraph graph object
 graph <- graph.adjacency(cor.matrix, mode = "undirected", weighted = TRUE)
-
+# Remove self-loops
+graph <- simplify(graph, remove.multiple = FALSE, remove.loops = TRUE)
 # Set node color based on gene expression level
 node.color <- ifelse(rowMeans(subset.exprs) > log2(6), "red", "blue")
 
@@ -196,25 +197,43 @@ gene_expression <- exprs(TCGA_eset)
 # Calculate variance for each gene
 gene_variance <- apply(gene_expression, 1, var)
 
-# Get the indices of the top 6 genes with the highest variance
-top_genes <- order(gene_variance, decreasing = TRUE)[10:15]
+# Get the indices of the top 20 genes with the highest variance
+top_genes <- order(gene_variance, decreasing = TRUE)[1:20]
 
-# Randomly select 6 samples
+# Subset the gene expression data with the top 20 genes
+subset_exprs <- gene_expression[top_genes, ]
 
-selected_samples <-15:20
+# Calculate the correlation matrix of the gene expression data
+correlation_matrix <- cor(t(subset_exprs))
 
-# Subset the gene expression data with the top 6 genes and the selected 6 samples
-subset_exprs <- gene_expression[top_genes, selected_samples]
-# Create the chord diagram
-chordDiagram(subset_exprs)
-
-# Set the font size of the labels
-circos.text(0, seq(0, 1, by = 1/length(top_genes)), top_genes, 
-            facing = 
-              "outside", niceFacing = T, cex = 0.001, adj = c(-0.05, 0.05))
+grid.col <- setNames(rainbow(length(top_genes)), top_genes)
 
 
+chordDiagram(correlation_matrix, annotationTrack = "grid", 
+             preAllocateTracks = 1, 
+             grid.col = grid.col,
+             directional = 1, 
+             direction.type = c("diffHeight", "arrows"), 
+             link.arr.type = "big.arrow")
 
+circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+  xlim = get.cell.meta.data("xlim")
+  ylim = get.cell.meta.data("ylim")
+  sector.name = get.cell.meta.data("sector.index")
+  circos.text(CELL_META$xcenter, 
+              ylim[1] + cm_h(2), 
+              sector.name, 
+              facing = "clockwise",
+              niceFacing = TRUE, 
+              adj = c(0, 0.5),
+              cex = .5,
+              col=grid.col[sector.name],
+              font = 1)
+  circos.axis(h = "bottom",
+              labels.cex = .1,
+              sector.index = sector.name
+              )
+}, bg.border = NA)
 ```
 
 
