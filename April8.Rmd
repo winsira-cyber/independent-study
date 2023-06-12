@@ -438,58 +438,11 @@ ggplot(missing_values, aes(x = rank(-N_Missing), y = N_Missing, fill = N_Missing
 **The x-axis shows the rank of each variable based on the number of missing values, and the y-axis shows the actual number of missing values. Each tile represents a variable, and its color represents the number of missing values it has. The darker the tile, the more missing values the variable has. The plot is useful for identifying which variables have the most missing values and to what extent they affect the data**
 
 
-## Volcano plot
-```{r}
-options(digits = 4)
-suppressWarnings(library(limma))
-
-# Create a design matrix using your sample group information
-design <- model.matrix(~ 0 + sample_metadata$sample_type)
-
-# the linear model is fit to the gene expression data using the sample metadata information to define groups
-fit <- lmFit(TCGA_eset, design)
-
-# empirical Bayes statistics are applied to obtain t-statistics for each gene. 
-#The t-statistics are used to rank the genes based on differential expression between groups
-fit <- eBayes(fit)
-#summary(fit)
-
-#topTable function is to extract the top genes based on this ranking
-#adjust parameter is set to "fdr" to adjust the p-values for multiple testing. 
-#significance threshold is defined to identify the differentially expressed genes based on the adjusted p-value
-results <- topTable(fit, number = nrow(TCGA_eset), adjust = "fdr", sort.by = "none")
 
 
-head(results)
-```
 
-```{r}
-options(digits = 4)
-library(ggplot2)
 
-# Prepare the data for the volcano plot
-# The log2 fold change is calculated as the difference in mean expression between two groups.
-#The result is a numerical value that represents the magnitude and direction of expression between the two groups.
-# e.g, if the log2 fold change for a particular gene is 1.5, it means that the mean expression level of that gene is 2^1.5 = 2.828 times higher in the tumor group than in the healthy group
-#The adjusted p-value is calculated as the negative log10 of the adjusted p-value multiplied by the sign of the log2 fold change.
-volcano_data <- data.frame(
-  genes = results$gene,
-  log2FoldChange = results$sample_metadata.sample_typetumor - results$sample_metadata.sample_typehealthy,
-  pvalue = results$adj.P.Val,
-  adj_pvalue = -log10(results$adj.P.Val) * sign(results$sample_metadata.sample_typetumor - results$sample_metadata.sample_typehealthy)
-)
 
-# Create the volcano plot
-ggplot(volcano_data, aes(x = log2FoldChange, y = adj_pvalue)) +
-  geom_point(aes(color = adj_pvalue > 0.05), alpha = 0.7) +
-  scale_color_manual(values = c("blue", "red")) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-  labs(x = "Log2 Fold Change", y = "-log10 adjusted p-value", title = "Differentially Expressed Genes") +
-  theme_classic()
-
-```
-
-**The volcano plot shows the log2 fold change in expression (x-axis) versus the negative log10 adjusted p-value (y-axis) for each gene. The blue points represent genes that are not significantly differentially expressed (adjusted p-value > 0.05), while the red points represent genes that are significantly  expressed (adjusted p-value < 0.05). The dashed horizontal line represents the threshold for statistical significance at an adjusted p-value of 0.05.**
 
 
 ## Time series plot
