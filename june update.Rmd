@@ -1,0 +1,224 @@
+---
+---
+title: "Visualization using various R packages"
+knit: (function(input_file, encoding) {
+    out_dir<- 'docs';
+    rmarkdown::render(input_file,
+      encoding=encoding,
+      output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+output: html_document
+---
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+suppressWarnings(library("readxl"))
+suppressWarnings(library(curatedOvarianData))
+ df1 <- metadata <- read_excel("/Users/ana/Documents/independent study/new.xls",col_names=T)
+ data(TCGA_eset)
+ 
+ 
+
+```
+
+```{r}
+suppressWarnings(library(curatedOvarianData))
+suppressWarnings(library(pheatmap))
+
+# Extract gene expression data
+exprs_matrix <- exprs(TCGA_eset)
+rownames(exprs_matrix) <- featureNames(TCGA_eset)
+
+
+subtypes <- df1 $SUBTYPE
+
+# Subtypes to analyze
+target_subtypes <- c("Immunoreactive", "Proliferative", "Differentiated", "Mesenchymal")
+
+# Loop over each subtype
+for (subtype in target_subtypes) {
+    # Subset the data for each subtype
+    subtype_indices <- which(subtypes == subtype)
+    exprs_matrix_subtype <- exprs_matrix[, subtype_indices]
+exprs_matrix_subtype <- exprs_matrix_subtype[!is.na(rowSums(exprs_matrix_subtype)), ]
+
+# Using complete.cases
+    # Subset to top 20 genes that have a relatively high variance
+    exprs_matrix_subtype <- exprs_matrix_subtype[apply(exprs_matrix_subtype, 1, function(x) var(x) > 0.5), ][20:40, ]
+    
+
+
+    # Create heatmap
+    pheatmap(exprs_matrix_subtype, scale = "row", clustering_distance_rows = "euclidean", 
+             show_rownames = T, show_colnames=F,
+             main = paste("Heatmap for", subtype)) 
+}
+
+```
+
+```{r}
+
+suppressWarnings(library(igraph))
+
+data(TCGA_eset)
+exprs_matrix <- exprs(TCGA_eset)
+subtypes <- df1 $SUBTYPE
+
+target_subtypes <- c("Immunoreactive", "Proliferative", "Differentiated", "Mesenchymal")
+
+
+
+# Loop over each subtype
+for (subtype in target_subtypes) {
+    # Subset the data for each subtype
+    subtype_indices <- which(subtypes == subtype)
+    tcga.exprs_subtype <- exprs_matrix[, subtype_indices]
+
+    # Log2 transformation
+    log2.exprs <- log2(tcga.exprs_subtype + 1)
+
+    # Calculate the variance for each gene
+    gene.variance <- apply(log2.exprs, 1, var)
+
+    # Order genes by variance and select the top 100
+    top.genes <- head(order(gene.variance, decreasing = TRUE), 5)
+
+    # Subset the gene expression data with the top 50 genes
+    subset.exprs <- log2.exprs[top.genes, ]
+
+    # Generate a correlation matrix of the gene expression data
+    cor.matrix <- cor(subset.exprs)
+threshold <- 0.7  # Adjust this value according to your data and needs
+
+    # Filter the correlation matrix
+    cor.matrix[abs(cor.matrix) < threshold] <- 0
+
+    # Create an igraph graph object
+    graph <- graph.adjacency(cor.matrix, mode = "undirected", weighted = TRUE)
+    
+    # Remove self-loops
+    graph <- simplify(graph, remove.multiple = FALSE, remove.loops = TRUE)
+
+    # Set node color based on gene expression level
+    node.color <- ifelse(rowMeans(subset.exprs) > log2(6), "red", "blue")
+
+    # Plot the graph with node color based on gene expression level
+    plot(graph, vertex.size =8, vertex.color = node.color,vertex.label.cex = 0.7, edge.width = E(graph)$weight*0.5,
+         main = paste("Graph for", subtype)) # title for each graph
+}
+
+```
+
+```{r}
+
+suppressWarnings(library(circlize))
+
+
+# Extract the gene expression data
+tcga.exprs <- exprs(TCGA_eset)
+
+# Assume the subtype information is stored in a variable named "subtype" in pData
+subtypes <- df1 $SUBTYPE
+
+# Subtypes to analyze
+target_subtypes <- c("Immunoreactive", "Proliferative", "Differentiated", "Mesenchymal")
+
+# Loop over each subtype
+for (subtype in target_subtypes) {
+    # Subset the data for each subtype
+    subtype_indices <- which(subtypes == subtype)
+    tcga.exprs_subtype <- tcga.exprs[, subtype_indices]
+
+    # Calculate the variance for each gene
+    gene.variance <- apply(tcga.exprs_subtype, 1, var)
+
+    # Order genes by variance and select the top 20
+    top_genes <- head(order(gene.variance, decreasing = TRUE), 20)
+
+    # Subset the gene expression data with the top 20 genes
+    subset_exprs <- tcga.exprs_subtype[top_genes, ]
+
+    # Calculate the correlation matrix of the gene expression data
+    correlation_matrix <- cor(t(subset_exprs))
+
+    grid.col <- setNames(rainbow(length(top_genes)), top_genes)
+
+    # Plot
+    par(mfrow = c(1, 1))
+    chordDiagram(correlation_matrix, annotationTrack = "grid", 
+                 preAllocateTracks = 1, 
+                 grid.col = grid.col,
+                 directional = 1, 
+                 direction.type = c("diffHeight", "arrows"), 
+                 link.arr.type = "big.arrow")
+
+    circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+      xlim = get.cell.meta.data("xlim")
+      ylim = get.cell.meta.data("ylim")
+      sector.name = get.cell.meta.data("sector.index")
+      circos.text(CELL_META$xcenter, 
+                  ylim[1] + cm_h(2), 
+                  sector.name, 
+                  facing = "clockwise",
+                  niceFacing = TRUE, 
+                  adj = c(0, 0.5),
+                  cex = .5,
+                  col=grid.col[sector.name],
+                  font = 1)
+      circos.axis(h = "bottom",
+                  labels.cex = .1,
+                  sector.index = sector.name
+                  )
+    }, bg.border = NA)
+    title(main = paste("Chord Diagram for", subtype), line = 2)
+}
+
+```
+
+```{r}
+
+
+suppressWarnings(library(networkD3))
+# Extract the gene expression data
+tcga.exprs <- exprs(TCGA_eset)
+
+# Assume the subtype information is stored in a variable named "subtype" in pData
+subtypes <- df1 $SUBTYPE
+
+# Subtypes to analyze
+target_subtypes <- c("Immunoreactive", "Proliferative", "Differentiated", "Mesenchymal")
+
+# Loop over each subtype
+for (subtype in target_subtypes) {
+  # Subset the data for each subtype
+  subtype_indices <- which(subtypes == subtype)
+  tcga.exprs_subtype <- tcga.exprs[, subtype_indices]
+
+  # Calculate the variance for each gene
+  gene.variance <- apply(tcga.exprs_subtype, 1, var)
+
+  # Get the indices of the top 20 genes with the highest variance
+  top_genes <- head(order(gene.variance, decreasing = TRUE), 20)
+
+  # Subset the gene expression data with the top 20 genes
+  subset_exprs <- tcga.exprs_subtype[top_genes, ]
+
+  # Calculate the correlation matrix of the gene expression data
+  cor_mat <- cor(subset_exprs)
+
+  # Convert correlation matrix to edge list
+  edge_list <- as.data.frame(as.table(cor_mat))
+  colnames(edge_list) <- c("source", "target", "weight")
+
+  # Create the simple network
+  print(paste("Network for", subtype))
+  simpleNetwork(edge_list,linkColour = "blue")
+}
+
+```
+
+
+
