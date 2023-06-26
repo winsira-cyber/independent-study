@@ -1,6 +1,6 @@
 ---
 ---
-title: "Visualization using various R packages"
+title: "Visualization of TCGA data using various R packages"
 knit: (function(input_file, encoding) {
     out_dir<- 'docs';
     rmarkdown::render(input_file,
